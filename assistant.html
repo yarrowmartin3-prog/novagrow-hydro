@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Nova – Assistante</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f7faf8;color:#0b1c10}
+.container{max-width:900px;margin:0 auto;padding:16px}
+.card{background:#fff;border:1px solid #e6eee9;border-radius:14px;padding:16px;margin-bottom:16px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button,input{padding:10px;border:1px solid #cfe5d6;border-radius:10px}
+button{cursor:pointer}
+textarea{width:100%;min-height:120px;padding:10px;border:1px solid #cfe5d6;border-radius:10px}
+.badge{background:#e8f5ed;border:1px solid #d7e8dd;border-radius:999px;padding:6px 10px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h1>Nova – Assistante personnelle</h1>
+    <div class="row">
+      <button id="ptt">🎙️ Appuyer pour parler</button>
+      <button id="stop">⏹️ Stop</button>
+      <span class="badge" id="micStatus">micro: inactif</span>
+    </div>
+    <textarea id="transcript" placeholder="Transcription ici…"></textarea>
+    <div class="row">
+      <button id="ask">Demander</button>
+      <select id="voiceSel"></select>
+    </div>
+    <div id="answer" class="card" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+const API_BASE = "https://yarrow-ai-server.vercel.app"; // ← remplace si besoin
+const SITE = "hydro";
+
+const micStatus = document.getElementById('micStatus');
+const transcript = document.getElementById('transcript');
+let rec=null;
+
+if('webkitSpeechRecognition' in window){
+  rec = new webkitSpeechRecognition();
+  rec.lang = 'fr-FR';
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.onresult = (e)=>{ let t=''; for(let i=e.resultIndex;i<e.results.length;i++){ t += e.results[i][0].transcript; } transcript.value = t; };
+  rec.onstart = ()=> micStatus.textContent = "micro: en écoute…";
+  rec.onend = ()=> micStatus.textContent = "micro: arrêté";
+}else{
+  micStatus.textContent = "micro: non supporté (Chrome/Android conseillé)";
+}
+
+document.getElementById('ptt').addEventListener('click', ()=>{ try{ rec && rec.start(); }catch{} });
+document.getElementById('stop').addEventListener('click', ()=>{ try{ rec && rec.stop(); }catch{} });
+
+const voiceSel = document.getElementById('voiceSel');
+function loadVoices(){ const voices = speechSynthesis.getVoices(); voiceSel.innerHTML = voices.map((v,i)=>`<option value="${i}">${v.name} (${v.lang})</option>`).join(""); }
+speechSynthesis.onvoiceschanged = loadVoices; loadVoices();
+
+function speak(text){ const u = new SpeechSynthesisUtterance(text); const vs = speechSynthesis.getVoices(); const i = parseInt(voiceSel.value,10); if(vs[i]) u.voice = vs[i]; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+
+document.getElementById('ask').addEventListener('click', async ()=>{
+  const q = transcript.value.trim(); if(!q) return;
+  const out = document.getElementById('answer'); out.style.display='block'; out.textContent = "Nova réfléchit…";
+  try{
+    const r = await fetch(`${API_BASE}/api/ask`,{
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ question:q, site:SITE })
+    });
+    const d = await r.json(); const a = d.ok ? d.answer : "Erreur côté serveur."; out.textContent = a; speak(a);
+  }catch{ out.textContent = "Erreur réseau."; }
+});
+</script>
+</body>
+</html>
