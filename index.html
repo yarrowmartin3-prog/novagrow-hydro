@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Nova – Hydroponie (IA)</title>
+<style>
+:root{--fg:#0b1c10;--bg:#f7faf8;--card:#fff;--muted:#64736a}
+*{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--fg);background:var(--bg)}
+header{padding:16px;background:#e8f5ed;border-bottom:1px solid #d7e8dd}
+h1{margin:0;font-size:22px} .muted{color:var(--muted);font-size:13px}
+main{max-width:960px;margin:0 auto;padding:16px}
+.grid{display:grid;gap:14px;grid-template-columns:1fr} @media(min-width:860px){.grid{grid-template-columns:2fr 1fr}}
+.card{background:var(--card);border:1px solid #e6eee9;border-radius:14px;padding:14px}
+article h2,article h3{margin-top:1em}
+.prod a{display:block;margin:6px 0;padding:10px;border:1px dashed #d7e8dd;border-radius:10px;text-decoration:none}
+a{color:#0f6b3a} a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+  <h1>Nova – Hydroponie (IA)</h1>
+  <div class="muted">Articles générés + curation quotidienne.</div>
+</header>
+
+<main class="grid">
+  <section class="card" id="feed"><div class="muted">Chargement des articles…</div></section>
+  <aside class="card">
+    <h3>Du web aujourd’hui</h3>
+    <div id="curationList" class="muted">Chargement…</div>
+    <hr/>
+    <h3>Poser une question</h3>
+    <input id="q" placeholder="Pose ta question..." style="width:100%;padding:8px;border:1px solid #cfe5d6;border-radius:8px"/>
+    <button id="askBtn" style="margin-top:8px;padding:8px 10px;border-radius:8px;border:1px solid #cfe5d6;background:#fff;cursor:pointer">Demander à Nova</button>
+    <div id="answer" class="muted" style="margin-top:8px"></div>
+  </aside>
+</main>
+
+<script>
+const API_BASE = "https://yarrow-ai-server.vercel.app"; // ← remplace si besoin
+const SITE_KEY = "hydro";
+
+function itemHTML(p){
+  const prods = (p.affiliate||[]).map(a=>`<a target="_blank" rel="nofollow sponsored noopener" href="${a.url}">🔗 ${a.label}</a>`).join("");
+  return `<article>
+    <h2>${p.title||"Sans titre"}</h2>
+    ${p.tags?.length ? `<div class="muted">${p.tags.map(t=>"#"+t).join(" ")}</div>` : ""}
+    ${p.excerpt ? `<p><em>${p.excerpt}</em></p>` : ""}
+    ${p.html||""}
+    <div class="prod"><h3>Produits recommandés</h3>${prods || "<p class='muted'>—</p>"}</div>
+    <hr/>
+  </article>`;
+}
+
+async function loadPosts(){
+  const el = document.getElementById("feed"); el.innerHTML = `<div class="muted">Chargement…</div>`;
+  try{
+    const r = await fetch(`${API_BASE}/api/posts?site=${SITE_KEY}`, { cache:"no-store" });
+    const d = await r.json(); if(!d.ok) throw 0;
+    el.innerHTML = (d.posts||[]).map(itemHTML).join("") || "<p>Aucun article aujourd’hui.</p>";
+  }catch{ el.innerHTML = "<p>Impossible de charger les articles.</p>"; }
+}
+
+async function loadCuration(){
+  const el = document.getElementById("curationList"); el.innerHTML = `<div class="muted">Chargement…</div>`;
+  try{
+    const r = await fetch(`${API_BASE}/api/curate?site=${SITE_KEY}`, { cache:"no-store" });
+    const d = await r.json(); if(!d.ok) throw 0;
+    const html = (d.curated||[]).map(p => `
+      <article>
+        <h3>${p.title}</h3>
+        ${p.html||""}
+        ${(p.products||[]).length ? `<h4>Produits utiles</h4>` : ""}
+        ${(p.products||[]).map(a=>`<p><a target="_blank" rel="nofollow sponsored noopener" href="${a.url}">🔗 ${a.label}</a></p>`).join("")}
+        <p class="muted">Source : <a target="_blank" rel="nofollow noopener" href="${p.source}">${p.source}</a></p>
+        <hr/>
+      </article>
+    `).join("") || "<p>Aucune curation aujourd’hui.</p>";
+    el.innerHTML = html;
+  }catch{ el.innerHTML = "<p>Impossible de charger la curation.</p>"; }
+}
+
+document.getElementById('askBtn').addEventListener('click', async ()=>{
+  const q = document.getElementById('q').value.trim(); const out = document.getElementById('answer');
+  if(!q){ out.textContent="Écris une question."; return; }
+  out.textContent = "Nova réfléchit…";
+  try{
+    const r = await fetch(`${API_BASE}/api/ask`, {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ question:q, site:SITE_KEY })
+    });
+    const d = await r.json(); out.textContent = d.ok ? d.answer : "Erreur côté serveur.";
+  }catch{ out.textContent = "Erreur réseau."; }
+});
+
+loadPosts(); loadCuration();
+</script>
+</body>
+</html>
