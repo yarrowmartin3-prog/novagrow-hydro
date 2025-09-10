@@ -1,0 +1,20 @@
+<!DOCTYPE html><html lang="fr"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TV Samsung – Télécommande locale</title>
+<style>body{font-family:system-ui;margin:0;padding:16px} input,button{padding:10px;border-radius:8px;border:1px solid #ccc;margin:4px 0}</style>
+</head><body>
+<h1>TV Samsung – Télécommande</h1>
+<label>IP locale de la TV <input id="ip" placeholder="ex: 192.168.1.25"/></label><br/>
+<button onclick="send('KEY_POWER')">Power</button>
+<button onclick="send('KEY_VOLUP')">Vol +</button>
+<button onclick="send('KEY_VOLDOWN')">Vol -</button>
+<button onclick="send('KEY_MUTE')">Mute</button>
+<script>
+async function send(key){
+  const ip = document.getElementById('ip').value.trim();
+  if(!ip) return alert("Entre l’IP locale de la TV.");
+  // Démo: les TVs récentes nécessitent WS + token (non trivial). Ici, on documente juste l’IP.
+  alert(`Commande ${key} prête (implémentation WS à faire selon modèle de TV). IP: ${ip}`);
+}
+</script>
+</body></html>
