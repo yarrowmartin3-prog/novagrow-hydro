@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="fr"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Caméra – Visionnage local</title>
+<style>body{font-family:system-ui;margin:0;padding:16px} input,button{padding:10px;border-radius:8px;border:1px solid #ccc;margin:4px 0} img,video{max-width:100%;border:1px solid #eee;border-radius:10px}</style>
+</head><body>
+<h1>Caméra – Visionnage local</h1>
+<input id="url" placeholder="URL .m3u8 (HLS) ou .jpg (snapshot)"/>
+<button id="load">Charger</button>
+<div id="out"></div>
+<script>
+document.getElementById('load').addEventListener('click', ()=>{
+  const u = document.getElementById('url').value.trim();
+  const out = document.getElementById('out'); out.innerHTML = "";
+  if(!u) return;
+  if(u.endsWith(".m3u8")){
+    const v = document.createElement("video"); v.controls = true; v.autoplay = true; v.src = u; out.appendChild(v);
+  }else if(u.endsWith(".jpg") || u.endsWith(".jpeg") || u.endsWith(".png")){
+    const img = document.createElement("img"); img.src = u; out.appendChild(img);
+  }else{
+    out.innerHTML = "<p>Format non géré ici (essaye .m3u8 ou .jpg).</p>";
+  }
+});
+</script>
+</body></html>
